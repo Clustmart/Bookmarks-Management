@@ -6,7 +6,7 @@ The Bookmarks Management Swift app is a command-line tool that checks the bookma
 
 To install the app, simply clone the repository to your local machine.
 
-__Note: if you get at runtime Error: Failed to read bookmarks plist, make sure that Bookmarks Management app has "Full Disck Access" (in System Settings)__
+__Note: if you get at runtime Error: Failed to read bookmarks plist, make sure that Bookmarks Management app has "Full Disk Access" (in System Settings)__
 
 ## Usage
 
