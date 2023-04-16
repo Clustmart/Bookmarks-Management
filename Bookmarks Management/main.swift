@@ -3,19 +3,22 @@
 //  Bookmarks Management
 //
 //  Created by Paul Wasicsek on 24.01.2023.
-//  Version: 0.2.0
+//  Version: 0.3.0
 //  Extract from Safari bookmark file:
 //      - all broken links to brokenLinks.txt
 //      - all working links to workingLinks.txt
+//      - saved bookmarked path
 //
 
 import Foundation
 
-func checkBookmarkRecursively(_ bookmark: [String: Any], parentTitle: String?, parentURL: String?, brokenLinksFile: FileHandle?, workingLinksFile: FileHandle?) {
+func checkBookmarkRecursively(_ bookmark: [String: Any], parentTitle: String?, parentURL: String?, brokenLinksFile: FileHandle?, workingLinksFile: FileHandle?, parentFolders: [String]) -> [[String]] {
+    var results: [[String]] = []
     let uriDict = bookmark["URIDictionary"] as? [String: Any]
     let title = uriDict?["title"] as? String
     let type = bookmark["WebBookmarkType"] as? String
     let url = bookmark["URLString"] as? String ?? ""
+    let bookmarkPath = ">"
         
     if type == "WebBookmarkTypeLeaf" {
         if let url = URL(string: url) {
@@ -32,7 +35,9 @@ func checkBookmarkRecursively(_ bookmark: [String: Any], parentTitle: String?, p
                 } else {
                     print("\(uriDict?["title"] as? String ?? "") ; \(url) ; OK")
                     workingLinksFile?.seekToEndOfFile()
-                    workingLinksFile?.write("\(uriDict?["title"] as? String ?? "") ; \(url) ; OK\n".data(using: .utf8)!)
+                    let bookmarkPath = parentFolders.joined(separator: " > ")
+                    let line = "\(uriDict?["title"] as? String ?? "") ; \(url) ; \(bookmarkPath as? String ?? "")\n"
+                    workingLinksFile?.write(line.data(using: .utf8)!)
                 }
                 semaphore.signal()
             }
@@ -42,9 +47,11 @@ func checkBookmarkRecursively(_ bookmark: [String: Any], parentTitle: String?, p
     } else if type == "WebBookmarkTypeList" {
         let children = bookmark["Children"] as? [[String: Any]] ?? []
         for child in children {
-            checkBookmarkRecursively(child, parentTitle: title, parentURL: url, brokenLinksFile: brokenLinksFile, workingLinksFile: workingLinksFile)
+            let newParentFolders = parentFolders + [bookmark["Title"] as! String]
+            checkBookmarkRecursively(child, parentTitle: title, parentURL: url, brokenLinksFile: brokenLinksFile, workingLinksFile: workingLinksFile, parentFolders: newParentFolders)
         }
     }
+    return results
 }
 
 func checkBookmarks() {
@@ -79,7 +86,7 @@ func checkBookmarks() {
             
             if let brokenLinksFile = FileHandle(forWritingAtPath: brokenLinksFileURL.path) {
                 for child in children {
-                    checkBookmarkRecursively(child, parentTitle: nil, parentURL: nil, brokenLinksFile: brokenLinksFile, workingLinksFile: workingLinksFile)
+                    checkBookmarkRecursively(child, parentTitle: nil, parentURL: nil, brokenLinksFile: brokenLinksFile, workingLinksFile: workingLinksFile, parentFolders: [])
                 }
                 brokenLinksFile.closeFile()
                 
